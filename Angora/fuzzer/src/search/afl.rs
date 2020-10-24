@@ -202,8 +202,14 @@ impl<'a> AFLFuzz<'a> {
                     let idx = rng.gen_range(0, self.dictionary.0.len() as u32);
                     let word = self.dictionary.get_word(idx as usize);
                     let word_bytes = word.0.as_bytes();
-                    
-                    let add_len = word_bytes.len() as u32;
+                    let size = word_bytes.len() as usize;
+
+                    if byte_len > size as u32 {
+                        let byte_idx: u32 = rng.gen_range(0, byte_len - size as u32);
+                        mut_input::set_word_in_buf(buf, byte_idx as usize, size, word_bytes);
+                    }
+
+                    /*let add_len = word_bytes.len() as u32;
                     let new_len = byte_len + add_len;
                     
                     if new_len < config::MAX_INPUT_LEN as u32 {
@@ -212,7 +218,7 @@ impl<'a> AFLFuzz<'a> {
                         for i in 0..add_len {
                             buf.insert((byte_idx + i) as usize, word_bytes[i as usize]);
                         }
-                    }
+                    }*/
                 }
                 _ => {},
             }
