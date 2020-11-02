@@ -80,7 +80,8 @@ impl CommandOpt {
             let mut dict: search::interesting_val::Dict = Default::default();
             match file {
                 Ok(_) => {
-                    dict.0.append(&mut search::interesting_val::Dict::parse_dict(file.unwrap()).0);
+                    dict.0 = search::interesting_val::Dict::parse_dict(file.unwrap()).0;
+                    //dict.0.append(&mut search::interesting_val::Dict::parse_dict(file.unwrap()).0);
                     (true, dict)
                 },
                 Err(_) => {
@@ -89,7 +90,7 @@ impl CommandOpt {
                 }
             }
         };
-        
+
         let out_file = tmp_dir.join(INPUT_FILE).to_str().unwrap().to_owned();
         let forksrv_socket_path = tmp_dir
             .join(FORKSRV_SOCKET_FILE)

@@ -11,13 +11,14 @@ impl<'a> RandomSearch<'a> {
 
     pub fn run(&mut self) {
         let mut input = self.handler.get_f_input();
+        let dict: Dict = Default::default();
         let orig_input_val = input.get_value();
         loop {
             if self.handler.is_stopped_or_skip() {
                 break;
             }
             input.assign(&orig_input_val);
-            input.randomize_all();
+            input.randomize_all(false, &dict);
             self.handler.execute_cond(&input);
         }
     }

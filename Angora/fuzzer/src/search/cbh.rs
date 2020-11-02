@@ -12,6 +12,7 @@ impl<'a> CbhSearch<'a> {
 
     pub fn run(&mut self) {
         let mut input = self.handler.get_f_input();
+        let dict: Dict = Default::default();
         assert!(
             input.len() > 0,
             "Input length < 0!! {:?}",
@@ -34,7 +35,7 @@ impl<'a> CbhSearch<'a> {
                 break;
             }
             input.assign(&input_min);
-            input.randomize_all();
+            input.randomize_all(false, &dict);
             let f0 = self.handler.execute_cond(&input);
             if f0 < fmin {
                 fmin = f0;

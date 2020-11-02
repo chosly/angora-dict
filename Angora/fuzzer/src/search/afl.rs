@@ -5,6 +5,8 @@
 
 use super::*;
 use rand::{self, distributions::Uniform, Rng};
+use indexmap::IndexMap;
+use std::string::String;
 
 static IDX_TO_SIZE: [usize; 4] = [1, 2, 4, 8];
 
@@ -51,9 +53,15 @@ impl<'a> AFLFuzz<'a> {
         } else {
             256
         };
+
+        /*let max_choice = if config::ENABLE_MICRO_RANDOM_LEN {
+            8
+        } else {
+            6
+        };*/
         let max_choice = if config::ENABLE_MICRO_RANDOM_LEN {
             if self.enable_dict {
-                9
+                10
             }
             else {
                 8
@@ -198,27 +206,41 @@ impl<'a> AFLFuzz<'a> {
                     }
                 },
                 8 => {
-                    // insert word in dictionary
-                    let idx = rng.gen_range(0, self.dictionary.0.len() as u32);
-                    let word = self.dictionary.get_word(idx as usize);
-                    let word_bytes = word.0.as_bytes();
-                    let size = word_bytes.len() as usize;
+                    // insert dict
+                    if(self.dictionary.is_empty()) { return; }
 
-                    if byte_len > size as u32 {
-                        let byte_idx: u32 = rng.gen_range(0, byte_len - size as u32);
-                        mut_input::set_word_in_buf(buf, byte_idx as usize, size, word_bytes);
-                    }
+                    let dict_idx = rng.gen_range(0, &self.dictionary.len());
+                    let list = &self.dictionary.get_list(dict_idx);
+                    let idx = rng.gen_range(0, list.len());
+                    let word = &list[idx as usize];
+                    let word_bytes = word.as_bytes();
 
-                    /*let add_len = word_bytes.len() as u32;
+                    let add_len = word.len() as u32;
                     let new_len = byte_len + add_len;
-                    
+
                     if new_len < config::MAX_INPUT_LEN as u32 {
                         let byte_idx: u32 = rng.gen_range(0, byte_len);
                         byte_len = new_len;
                         for i in 0..add_len {
                             buf.insert((byte_idx + i) as usize, word_bytes[i as usize]);
                         }
-                    }*/
+                    }
+                }
+                9 => {
+                    // replace bytes with dict
+                    if(self.dictionary.is_empty()) { return; }
+
+                    let dict_idx = rng.gen_range(0, &self.dictionary.len());
+                    let list = &self.dictionary.get_list(dict_idx);
+                    let idx = rng.gen_range(0, list.len());
+                    let word = &list[idx as usize];
+                    let word_bytes = word.as_bytes();
+                    let size = word.len() as usize;
+
+                    if byte_len > size as u32 {
+                        let byte_idx: u32 = rng.gen_range(0, byte_len - size as u32);
+                        mut_input::set_word_in_buf(buf, byte_idx as usize, size, word_bytes);
+                    }
                 }
                 _ => {},
             }

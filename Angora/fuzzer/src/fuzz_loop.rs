@@ -101,7 +101,8 @@ pub fn fuzz_loop(
                         fz.run();
                         fz.handler.cond.to_unsolvable(); // to skip next time
                     } else {
-                        ExploitFuzz::new(handler).run();
+                        let dict = dictionary.clone();
+                        ExploitFuzz::new(handler, enable_dict, dict).run();
                     }
                 },
                 FuzzType::AFLFuzz => {

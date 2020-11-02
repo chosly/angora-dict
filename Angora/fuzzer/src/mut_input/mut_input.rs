@@ -8,6 +8,8 @@ use std::{fmt, u8};
 //use std::u16;
 use std::{cmp, u32, u64};
 
+use std::string::String;
+
 #[derive(Clone, Debug, Constructor)]
 struct InputMeta {
     sign: bool,
@@ -148,18 +150,18 @@ impl MutInput {
         set_bytes_by_offsets(offsets, &self.value, input);
     }
 
-    pub fn randomize_all(&mut self) {
+    pub fn randomize_all(&mut self, enable_dict: bool, dict: &search::interesting_val::Dict) {
         let mut rng = rand::thread_rng();
-        self.randomize_all_with_weight(&mut rng, 3);
+        self.randomize_all_with_weight(&mut rng, 3, enable_dict, dict);
     }
 
-    pub fn randomize_all_with_weight<T: Rng>(&mut self, rng: &mut T, weight: u32) {
+    pub fn randomize_all_with_weight<T: Rng>(&mut self, rng: &mut T, weight: u32, enable_dict: bool, dict: &search::interesting_val::Dict) {
         // 1/weight true
         let coin = rng.gen_bool(1.0 / weight as f64);
         if coin {
             self.randomize_all_uniform(rng);
         } else {
-            self.randomize_all_mut_based(rng);
+            self.randomize_all_mut_based(rng, enable_dict, dict);
         }
     }
 
@@ -167,7 +169,7 @@ impl MutInput {
         rng.fill_bytes(&mut self.value);
     }
 
-    pub fn randomize_all_mut_based<T: Rng>(&mut self, rng: &mut T) {
+    pub fn randomize_all_mut_based<T: Rng>(&mut self, rng: &mut T, enable_dict: bool, dict: &search::interesting_val::Dict) {
         let entry_len = self.len() as u32;
         let byte_len = self.val_len() as u32;
         assert!(byte_len > 0 && entry_len > 0);
@@ -180,8 +182,13 @@ impl MutInput {
             1 + rng.gen_range(0, 256)
         };
 
-        // let choice_range = Range::new(0, 6);
-        let choice_range = Uniform::new(0, 6);
+        //let choice_range = Uniform::new(0, 6);
+        let choice_range = if enable_dict {
+            Uniform::new(0, 7)
+        }
+        else {
+            Uniform::new(0, 6)
+        };
 
         for _ in 0..use_stacking {
             match rng.sample(choice_range) {
@@ -216,6 +223,36 @@ impl MutInput {
                     let byte_idx: u32 = rng.gen_range(0, byte_len);
                     // self.randomize_one_byte(byte_idx as usize);
                     self.value[byte_idx as usize] = rng.gen();
+                }
+                6 => {
+                    // replace bytes with dict
+                    if dict.is_empty() { return; }
+
+                    let entry_idx: usize = rng.gen_range(0, entry_len as usize);
+                    let n = self.get_entry_len(entry_idx);
+                    let mut dict_idx = 0;
+                    {
+                        let mut v = 0;
+                        for key in dict.0.keys() {
+                            if n < *key {
+                                break;
+                            }
+                            v = *key;
+                        }
+                        dict_idx = rng.gen_range(0, dict.0.get_index_of(&v).unwrap_or(1) as usize);
+                        //info!("entry_len: {}, key: {}, dict_idx: {}, list: {:?}", n, v, dict_idx, &dict.get_list(dict_idx));
+                    }
+
+                    let list = &dict.get_list(dict_idx);
+                    let idx = rng.gen_range(0, list.len());
+                    let word = &list[idx as usize];
+                    let word_bytes = word.as_bytes();
+                    let size = word.len() as usize;
+
+                    let info = &self.meta[entry_idx];
+                    //info!("{:?} {} {} {} / {:?} {}", &self.get_value(), &self.get_value().len(), info.offset, info.size, word, size);
+                    set_word_in_buf(&mut self.value, info.offset, std::cmp::min(info.size, size), word_bytes);
+                    //info!("{:?} {}", &self.get_value(), &self.get_value().len());
                 }
                 _ => {}
             }

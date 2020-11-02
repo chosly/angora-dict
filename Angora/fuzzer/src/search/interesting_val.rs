@@ -2,7 +2,10 @@
 use std::{
     fs,
     io::{self, prelude::*, BufReader},
+    collections::HashMap,
 };
+
+use indexmap::IndexMap;
 
 static INTERESTING_V0: [u64; 1] = [0];
 
@@ -90,10 +93,18 @@ impl Word {
         let tmp = data.clone();
         Self(tmp)
     }
+
+    pub fn len(&self) -> usize {
+        self.0.as_bytes().len()
+    }
+
+    pub fn as_bytes(&self) -> &[u8] {
+        &self.0.as_bytes()
+    }
 }
 
 #[derive(Default, Clone, Debug)]
-pub struct Dict (pub Vec<Word>);
+pub struct Dict (pub IndexMap<usize, Vec<Word>>);
 
 impl Dict {
     pub fn parse_dict(file: fs::File) -> Dict {
@@ -121,19 +132,32 @@ impl Dict {
             if first_quote > -1 && second_quote > -1 {
                 let data = line[first_quote as usize + 1..second_quote as usize].to_string();
                 let word = Word::new(data);
-                dict.0.push(word);
+                let len = word.0.len();
+                if let Some(x) = dict.0.get_mut(&len) {
+                    x.push(word);
+                }
+                else {
+                    dict.0.insert(len, vec![word]);
+                }
             }
         }
 
-   
+        dict.0.sort_keys();
         dict
     }
 
-    pub fn get_word(&self, idx: usize) -> Word {
-        self.0[idx].clone()
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn get_list(&self, idx: usize) -> Vec<Word> {
+        match &self.0.get_index(idx) {
+            Some(x) => { x.1.to_vec() }
+            _ => { warn!("Can't find the dictionary"); vec![] }
+        }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        return self.0.is_empty()
     }
 }
-
-/*pub fn get_dictionary<'a>() -> &'a [&'a str] {
-    return &DICT
-}*/

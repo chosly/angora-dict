@@ -12,6 +12,7 @@ impl<'a> MbSearch<'a> {
 
     pub fn run(&mut self) {
         let mut input = self.handler.get_f_input();
+        let dict: Dict = Default::default();
         assert!(
             input.len() > 0,
             "Input length < 0!! {:?}",
@@ -29,7 +30,7 @@ impl<'a> MbSearch<'a> {
                 break;
             }
             input.assign(&orig_input_val);
-            input.randomize_all();
+            input.randomize_all(false, &dict);
             self.handler.execute_cond(&input);
         }
     }
