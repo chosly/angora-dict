@@ -1,5 +1,5 @@
 use super::*;
-use crate::{cond_stmt::CondStmt, executor::StatusType};
+use crate::{cond_stmt::CondStmt, executor::StatusType, search::interesting_val};
 use rand;
 use std::{
     fs,
@@ -107,7 +107,7 @@ impl Depot {
             })
     }
 
-    pub fn add_entries(&self, conds: Vec<CondStmt>) {
+    pub fn add_entries(&self, conds: Vec<CondStmt>) -> Vec<interesting_val::SCond> {
         let mut q = match self.queue.lock() {
             Ok(guard) => guard,
             Err(poisoned) => {
@@ -115,6 +115,8 @@ impl Depot {
                 poisoned.into_inner()
             },
         };
+
+        let mut ret: Vec<interesting_val::SCond> = Vec::new();
 
         for mut cond in conds {
             if cond.is_desirable {
@@ -125,6 +127,7 @@ impl Depot {
                         if v.0.base.condition != cond.base.condition {
                             v.0.mark_as_done();
                             q.change_priority(&cond, QPriority::done());
+                            ret.push(interesting_val::SCond::new(cond.base.cmpid, cond.offsets));
                         } else {
                             // Existed, but the new one are better
                             // If the cond is faster than the older one, we prefer the faster,
@@ -141,6 +144,7 @@ impl Depot {
                 }
             }
         }
+        ret
     }
 
     pub fn update_entry(&self, cond: CondStmt) {

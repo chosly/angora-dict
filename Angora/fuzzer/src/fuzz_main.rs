@@ -31,7 +31,8 @@ pub fn fuzz_main(
     sync_afl: bool,
     enable_afl: bool,
     enable_exploitation: bool,
-    dict_mutation: &str,
+    enable_dict: bool,
+    //dict_mutation: &str,
 ) {
     pretty_env_logger::init();
 
@@ -46,7 +47,8 @@ pub fn fuzz_main(
         time_limit,
         enable_afl,
         enable_exploitation,
-        dict_mutation,
+        enable_dict,
+        //dict_mutation,
     );
     info!("{:?}", command_option);
     check_dep::check_dep(in_dir, out_dir, &command_option);

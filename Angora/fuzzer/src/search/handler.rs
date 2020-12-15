@@ -1,6 +1,8 @@
 use super::*;
 use crate::stats::Counter;
 
+use crate::search::interesting_val;
+
 pub struct SearchHandler<'a> {
     running: Arc<AtomicBool>,
     pub executor: &'a mut Executor,
@@ -55,14 +57,15 @@ impl<'a> SearchHandler<'a> {
     }
 
     pub fn execute(&mut self, buf: &Vec<u8>) {
-        let status = self.executor.run(buf, self.cond);
+        let status = self.executor.run(buf, self.cond).0;
         self.process_status(status);
     }
 
-    pub fn execute_input(&mut self, input: &MutInput) {
+    pub fn execute_input(&mut self, input: &MutInput) -> Vec<interesting_val::SCond> {
         input.write_to_input(&self.cond.offsets, &mut self.buf);
-        let status = self.executor.run(&self.buf, self.cond);
+        let (status, ret) = self.executor.run(&self.buf, self.cond);
         self.process_status(status);
+        ret
     }
 
     pub fn execute_cond(&mut self, input: &MutInput) -> u64 {
@@ -80,7 +83,7 @@ impl<'a> SearchHandler<'a> {
     }
 
     pub fn execute_input_direct(&mut self) {
-        let status = self.executor.run(&self.buf, self.cond);
+        let status = self.executor.run(&self.buf, self.cond).0;
         self.process_status(status);
     }
 

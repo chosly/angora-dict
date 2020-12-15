@@ -19,7 +19,6 @@ impl<'a> RandomSearch<'a> {
             }
             input.assign(&orig_input_val);
             input.randomize_all(false, &dict);
-            self.handler.execute_cond(&input);
         }
     }
 }

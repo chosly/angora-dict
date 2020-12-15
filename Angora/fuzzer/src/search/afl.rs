@@ -54,12 +54,14 @@ impl<'a> AFLFuzz<'a> {
             256
         };
 
-        /*let max_choice = if config::ENABLE_MICRO_RANDOM_LEN {
+        
+        let max_choice = if config::ENABLE_MICRO_RANDOM_LEN {
             8
         } else {
             6
-        };*/
-        let max_choice = if config::ENABLE_MICRO_RANDOM_LEN {
+        };
+        
+        /*let max_choice = if config::ENABLE_MICRO_RANDOM_LEN {
             if self.enable_dict {
                 10
             }
@@ -68,7 +70,7 @@ impl<'a> AFLFuzz<'a> {
             }
         } else {
             6
-        };
+        };*/
 
         let choice_range = Uniform::new(0, max_choice);
 
@@ -205,7 +207,7 @@ impl<'a> AFLFuzz<'a> {
                         }
                     }
                 },
-                8 => {
+                /*8 => {
                     // insert dict
                     if(self.dictionary.is_empty()) { return; }
 
@@ -241,7 +243,7 @@ impl<'a> AFLFuzz<'a> {
                         let byte_idx: u32 = rng.gen_range(0, byte_len - size as u32);
                         mut_input::set_word_in_buf(buf, byte_idx as usize, size, word_bytes);
                     }
-                }
+                }*/
                 _ => {},
             }
         }

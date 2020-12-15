@@ -4,6 +4,7 @@ use crate::{
     branches, command,
     cond_stmt::{self, NextState},
     depot, stats, track,
+    search::interesting_val,
 };
 use angora_common::{config, defs};
 
@@ -221,10 +222,11 @@ impl Executor {
         skip
     }
 
-    fn do_if_has_new(&mut self, buf: &Vec<u8>, status: StatusType, _explored: bool, cmpid: u32) {
+    fn do_if_has_new(&mut self, buf: &Vec<u8>, status: StatusType, _explored: bool, cmpid: u32) -> Vec<interesting_val::SCond> {
         // new edge: one byte in bitmap
         let (has_new_path, has_new_edge, edge_num) = self.branches.has_new(status);
-
+        let mut ret: Vec<interesting_val::SCond> = Default::default();
+        
         if has_new_path {
             self.has_new_path = true;
             self.local_stats.find_new(&status);
@@ -242,13 +244,13 @@ impl Executor {
                         "Skip tracking id {}, speed: {}, speed_ratio: {}, has_new_edge: {}",
                         id, speed, speed_ratio, has_new_edge
                     );
-                    return;
+                    return ret;
                 }
                 let crash_or_tmout = self.try_unlimited_memory(buf, cmpid);
                 if !crash_or_tmout {
                     let cond_stmts = self.track(id, buf, speed);
                     if cond_stmts.len() > 0 {
-                        self.depot.add_entries(cond_stmts);
+                        ret = self.depot.add_entries(cond_stmts);
                         if self.cmd.enable_afl {
                             self.depot
                                 .add_entries(vec![cond_stmt::CondStmt::get_afl_cond(
@@ -259,13 +261,15 @@ impl Executor {
                 }
             }
         }
+        ret
     }
 
-    pub fn run(&mut self, buf: &Vec<u8>, cond: &mut cond_stmt::CondStmt) -> StatusType {
+    pub fn run(&mut self, buf: &Vec<u8>, cond: &mut cond_stmt::CondStmt) -> (StatusType, Vec<interesting_val::SCond>) {
         self.run_init();
-        let status = self.run_inner(buf);
-        self.do_if_has_new(buf, status, false, 0);
-        self.check_timeout(status, cond)
+        let mut status = self.run_inner(buf);
+        let ret: Vec<interesting_val::SCond> = self.do_if_has_new(buf, status, false, 0);
+        status = self.check_timeout(status, cond);
+        (status, ret)
     }
 
     pub fn run_sync(&mut self, buf: &Vec<u8>) {

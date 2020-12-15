@@ -79,13 +79,18 @@ fn main() {
              .short("E")
              .long("disable_exploitation")
              .help("Disable the fuzzer to mutate sensitive bytes to exploit bugs"))
-        .arg(Arg::with_name("dict_mutation")
-             .short("x")
+        .arg(Arg::with_name("enable_dict_mutation")
+             .short("X")
+             .long("enable_dict_mutation")
+             .help("Enable dict mutation"))
+        /*.arg(Arg::with_name("dict_mutation")
+             .short("X")
              .long("dict")
              .value_name("DictFile")
              .help("Enable dictionary mutation and set the file for dictionary")
              .takes_value(true)
              .required(false))
+        */
         .get_matches();
 
     fuzz_main(
@@ -101,6 +106,7 @@ fn main() {
         matches.occurrences_of("sync_afl") > 0,
         matches.occurrences_of("disable_afl_mutation") == 0,
         matches.occurrences_of("disable_exploitation") == 0,
-        matches.value_of("dict_mutation").unwrap_or("nodict"),
+        matches.occurrences_of("enable_dict_mutation") != 0,
+        //matches.value_of("dict_mutation").unwrap_or("nodict"),
     );
 }

@@ -68,14 +68,16 @@ impl CommandOpt {
         time_limit: u64,
         enable_afl: bool,
         enable_exploitation: bool,
-        dict_mutation: &str,
+        enable_dict: bool,
+        //dict_mutation: &str,
     ) -> Self {
         let mode = InstrumentationMode::from(mode);
         
         let tmp_dir = out_dir.join(TMP_DIR);
         tmpfs::create_tmpfs_dir(&tmp_dir);
-
-        let (enable_dict, dictionary) = {
+        
+        let mut dictionary: search::interesting_val::Dict = Default::default();
+        /*let (enable_dict, dictionary) = {
             let file = File::open(dict_mutation);
             let mut dict: search::interesting_val::Dict = Default::default();
             match file {
@@ -89,7 +91,7 @@ impl CommandOpt {
                     (false, dict)
                 }
             }
-        };
+        };*/
 
         let out_file = tmp_dir.join(INPUT_FILE).to_str().unwrap().to_owned();
         let forksrv_socket_path = tmp_dir

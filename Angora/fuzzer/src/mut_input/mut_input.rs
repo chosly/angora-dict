@@ -182,14 +182,14 @@ impl MutInput {
             1 + rng.gen_range(0, 256)
         };
 
-        //let choice_range = Uniform::new(0, 6);
-        let choice_range = if enable_dict {
+        let choice_range = Uniform::new(0, 6);
+        /*let choice_range = if enable_dict {
             Uniform::new(0, 7)
         }
         else {
             Uniform::new(0, 6)
-        };
-
+        };*/
+        
         for _ in 0..use_stacking {
             match rng.sample(choice_range) {
                 0 | 1 => {
@@ -224,7 +224,7 @@ impl MutInput {
                     // self.randomize_one_byte(byte_idx as usize);
                     self.value[byte_idx as usize] = rng.gen();
                 }
-                6 => {
+                /*6 => {
                     // replace bytes with dict
                     if dict.is_empty() { return; }
 
@@ -243,6 +243,11 @@ impl MutInput {
                         //info!("entry_len: {}, key: {}, dict_idx: {}, list: {:?}", n, v, dict_idx, &dict.get_list(dict_idx));
                     }
 
+                    /*let word = {
+                        let list = &dict.get_list(dict_idx);
+                        let idx = rng.gen_range(0, list.len());
+                        &list[idx as usize]
+                    };*/
                     let list = &dict.get_list(dict_idx);
                     let idx = rng.gen_range(0, list.len());
                     let word = &list[idx as usize];
@@ -253,7 +258,7 @@ impl MutInput {
                     //info!("{:?} {} {} {} / {:?} {}", &self.get_value(), &self.get_value().len(), info.offset, info.size, word, size);
                     set_word_in_buf(&mut self.value, info.offset, std::cmp::min(info.size, size), word_bytes);
                     //info!("{:?} {}", &self.get_value(), &self.get_value().len());
-                }
+                }*/
                 _ => {}
             }
         }

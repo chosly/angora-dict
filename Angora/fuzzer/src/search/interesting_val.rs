@@ -7,6 +7,8 @@ use std::{
 
 use indexmap::IndexMap;
 
+use angora_common::tag::TagSeg;
+
 static INTERESTING_V0: [u64; 1] = [0];
 
 static INTERESTING_V8: [u64; 9] = [
@@ -85,6 +87,21 @@ pub fn get_interesting_bytes<'a>(width: usize) -> &'a [u64] {
     }
 }
 
+#[derive(Debug, Default, Clone)]
+pub struct SCond {
+    pub cmpid: u32,
+    pub offsets: Vec<TagSeg>,
+}
+
+impl SCond {
+    pub fn new(cmpid: u32, offsets: Vec<TagSeg>) -> Self {
+        Self {
+            cmpid: cmpid,
+            offsets: offsets,
+        }
+    }
+}
+
 #[derive(Default, Clone, Debug)]
 pub struct Word (pub String);
 
@@ -104,7 +121,36 @@ impl Word {
 }
 
 #[derive(Default, Clone, Debug)]
-pub struct Dict (pub IndexMap<usize, Vec<Word>>);
+pub struct Dict (pub IndexMap<u32, Vec<Vec<u8>>>);
+
+impl Dict {
+    pub fn filter(&mut self, conds: Vec<SCond>, buf: Vec<u8>) {
+        info!("before: {:?}", self.0);
+        for cond in conds {
+            let mut words: Vec<Vec<u8>> = Vec::new();
+            for tag in cond.offsets {
+                words.push(buf[(tag.begin as usize)..(tag.end as usize + 1)].to_vec());
+            }
+            /*
+            for word in words.clone() {
+                info!("{}", String::from_utf8_lossy(&word));
+            }
+            */
+            if let Some(x) = self.0.get_mut(&cond.cmpid) {
+                for word in words {
+                    if !x.contains(&word) {
+                        x.push(word);
+                    }
+                }
+            }
+            else {
+                self.0.insert(cond.cmpid, words);
+            }
+        }
+        info!("after: {:?}", self.0);
+    }
+}
+/*pub struct Dict (pub IndexMap<usize, Vec<Word>>);
 
 impl Dict {
     pub fn parse_dict(file: fs::File) -> Dict {
@@ -160,4 +206,4 @@ impl Dict {
     pub fn is_empty(&self) -> bool {
         return self.0.is_empty()
     }
-}
+}*/
