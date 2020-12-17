@@ -8,37 +8,39 @@ use std;
 pub struct GdSearch<'a> {
     handler: SearchHandler<'a>,
     sample_index: (usize, usize),
+    enable_dict: bool,
 }
 
 impl<'a> GdSearch<'a> {
-    pub fn new(handler: SearchHandler<'a>) -> Self {
+    pub fn new(handler: SearchHandler<'a>, enable_dict: bool) -> Self {
         Self {
             handler,
             sample_index: (0, 0),
+            enable_dict
         }
     }
 
-    fn execute(&mut self, input: &MutInput) -> u64 {
+    fn execute(&mut self, input: &MutInput) -> (u64, Vec<interesting_val::SCond>) {
         if self.handler.skip {
-            return self.handler.executor.last_f;
+            return (self.handler.executor.last_f, vec![]);
         }
         debug!("input : {:?}", input);
-        let f = self.handler.execute_cond(input);
-        f
+        let (f, ret) = self.handler.execute_cond(input);
+        (f, ret)
     }
 
     fn random_fuzz<T: Rng>(&mut self, rng: &mut T) {
         let mut fmin = std::u64::MAX;
         let mut input = self.handler.get_f_input();
         let mut input_min = input.get_value();
-        let dict: Dict = Default::default();
+        
         loop {
             if self.handler.is_stopped_or_skip() {
                 break;
             }
             input.assign(&input_min);
-            input.randomize_all_with_weight(rng, 3, false, &dict);
-            let f0 = self.execute(&input);
+            input.randomize_all_with_weight(rng, 3, false);
+            let f0 = self.execute(&input).0;
             if f0 < fmin {
                 fmin = f0;
                 input_min = input.get_value();
@@ -115,7 +117,7 @@ impl<'a> GdSearch<'a> {
 
     fn reload_input(&mut self, input_min: &mut MutInput) -> u64 {
         input_min.assign(&self.handler.cond.variables);
-        self.execute(&input_min)
+        self.execute(&input_min).0
     }
 
     fn init_start_point(&mut self, input_min: &mut MutInput) -> u64 {
@@ -124,7 +126,7 @@ impl<'a> GdSearch<'a> {
         let mut fmin = self.handler.execute_cond_direct();
 
         input.assign(&self.handler.cond.variables);
-        let f1 = self.execute(&input);
+        let f1 = self.execute(&input).0;
         if f1 < fmin {
             fmin = f1;
             input_min.set_value_from_input(&input);
@@ -134,7 +136,7 @@ impl<'a> GdSearch<'a> {
             let mut rev_v = self.handler.cond.variables.clone();
             rev_v.reverse();
             input.assign(&rev_v);
-            let f1 = self.execute(&input);
+            let f1 = self.execute(&input).0;
             if f1 < fmin {
                 fmin = f1;
                 input_min.set_value_from_input(&input);
@@ -183,7 +185,19 @@ impl<'a> GdSearch<'a> {
                 input.randomize_all_uniform(rng);
             }
 
-            let f1 = self.execute(&input);
+            let (f1, ret) = self.execute(&input);
+
+            if self.enable_dict && ret.len() > 0 {
+                let mut d = match self.handler.executor.dictionary.write() {
+                    Ok(guard) => guard,
+                    Err(poisoned) => {
+                        warn!("Lock poisoned. Results can be incorrect! Continuing...");
+                        poisoned.into_inner()
+                    }
+                };
+                d.filter(ret, self.handler.buf.clone());
+            }
+
             if f1 < fmin {
                 fmin = f1;
                 input_min.set_value_from_input(&input);
@@ -207,10 +221,10 @@ impl<'a> GdSearch<'a> {
         let mut input = orig_input.clone();
         let orig_val = input.get_entry(i);
         input.update(i, true, 1);
-        let f_plus = self.execute(&input);
+        let f_plus = self.execute(&input).0;
         input.set(i, orig_val);
         input.update(i, false, 1);
-        let f_minus = self.execute(&input);
+        let f_minus = self.execute(&input).0;
 
         // trace!("f0={} plus={} minus={}", f0, f_plus, f_minus);
         match (f_minus < f0, f_plus < f0) {
@@ -284,7 +298,7 @@ impl<'a> GdSearch<'a> {
                 f0, vsum, input, guess_step
             );
             Self::compute_delta_all(&mut input, grad, guess_step as usize);
-            let f_new = self.execute(&input);
+            let f_new = self.execute(&input).0;
             if f_new >= f_last {
                 input.set_value_from_input(&input_min);
             } else {
@@ -309,7 +323,7 @@ impl<'a> GdSearch<'a> {
                     Self::compute_delta_all(&mut input, grad, step);
                 };
 
-                let f_new = self.execute(&input);
+                let f_new = self.execute(&input).0;
 
                 trace!("step={:?} f_new={:?}", step, f_new);
 

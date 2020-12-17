@@ -13,7 +13,7 @@ use std::{
     thread, time,
 };
 
-use crate::{bind_cpu, branches, check_dep, command, depot, executor, fuzz_loop, stats};
+use crate::{bind_cpu, branches, check_dep, command, depot, executor, fuzz_loop, stats, search};
 use ctrlc;
 use libc;
 use pretty_env_logger;
@@ -56,6 +56,7 @@ pub fn fuzz_main(
     let depot = Arc::new(depot::Depot::new(seeds_dir, &angora_out_dir));
     info!("{:?}", depot.dirs);
 
+    let dict = Arc::new(RwLock::new(search::interesting_val::Dict::default()));
     let stats = Arc::new(RwLock::new(stats::ChartStats::new()));
     let global_branches = Arc::new(branches::GlobalBranches::new());
     let fuzzer_stats = create_stats_file_and_write_pid(&angora_out_dir);
@@ -67,6 +68,7 @@ pub fn fuzz_main(
         global_branches.clone(),
         depot.clone(),
         stats.clone(),
+        dict.clone(),
     );
 
     depot::sync_depot(&mut executor, running.clone(), &depot.dirs.seeds_dir);
@@ -88,6 +90,7 @@ pub fn fuzz_main(
         &global_branches,
         &depot,
         &stats,
+        &dict,
     );
 
     let log_file = match fs::File::create(angora_out_dir.join(defs::ANGORA_LOG_FILE)) {
@@ -185,6 +188,7 @@ fn init_cpus_and_run_fuzzing_threads(
     global_branches: &Arc<branches::GlobalBranches>,
     depot: &Arc<depot::Depot>,
     stats: &Arc<RwLock<stats::ChartStats>>,
+    dictionary: &Arc<RwLock<search::interesting_val::Dict>>,
 ) -> (Vec<thread::JoinHandle<()>>, Arc<AtomicUsize>) {
     let child_count = Arc::new(AtomicUsize::new(0));
     let mut handlers = vec![];
@@ -203,13 +207,14 @@ fn init_cpus_and_run_fuzzing_threads(
         let d = depot.clone();
         let b = global_branches.clone();
         let s = stats.clone();
+        let dict = dictionary.clone();
         let cid = if bind_cpus { free_cpus[thread_id] } else { 0 };
         let handler = thread::spawn(move || {
             c.fetch_add(1, Ordering::SeqCst);
             if bind_cpus {
                 bind_cpu::bind_thread_to_cpu_core(cid);
             }
-            fuzz_loop::fuzz_loop(r, cmd, d, b, s);
+            fuzz_loop::fuzz_loop(r, cmd, d, b, s, dict);
         });
         handlers.push(handler);
     }

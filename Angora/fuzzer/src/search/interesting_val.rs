@@ -125,20 +125,29 @@ pub struct Dict (pub IndexMap<u32, Vec<Vec<u8>>>);
 
 impl Dict {
     pub fn filter(&mut self, conds: Vec<SCond>, buf: Vec<u8>) {
-        info!("before: {:?}", self.0);
+        //info!("before: {:?}", self.0);
         for cond in conds {
             let mut words: Vec<Vec<u8>> = Vec::new();
-            for tag in cond.offsets {
-                words.push(buf[(tag.begin as usize)..(tag.end as usize + 1)].to_vec());
+            let mut i = 0;
+            loop {
+                if i == cond.offsets.len() { break; }
+
+                let idx = i;
+                let mut end = cond.offsets[i].end;
+
+                for j in i+1..cond.offsets.len() {
+                    if end != cond.offsets[j].begin { break; }
+                    end = cond.offsets[j].end;
+                    i = j;
+                }
+                words.push(buf[(cond.offsets[idx].begin as usize)..(cond.offsets[i].end as usize)].to_vec());
+                i += 1;
             }
-            /*
-            for word in words.clone() {
-                info!("{}", String::from_utf8_lossy(&word));
-            }
-            */
+
             if let Some(x) = self.0.get_mut(&cond.cmpid) {
                 for word in words {
                     if !x.contains(&word) {
+                        info!("{}", String::from_utf8_lossy(&word));
                         x.push(word);
                     }
                 }
@@ -147,7 +156,7 @@ impl Dict {
                 self.0.insert(cond.cmpid, words);
             }
         }
-        info!("after: {:?}", self.0);
+        //info!("after: {:?}", self.0);
     }
 }
 /*pub struct Dict (pub IndexMap<usize, Vec<Word>>);

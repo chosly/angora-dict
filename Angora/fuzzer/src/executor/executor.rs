@@ -5,6 +5,7 @@ use crate::{
     cond_stmt::{self, NextState},
     depot, stats, track,
     search::interesting_val,
+    search,
 };
 use angora_common::{config, defs};
 
@@ -34,6 +35,7 @@ pub struct Executor {
     pub has_new_path: bool,
     pub global_stats: Arc<RwLock<stats::ChartStats>>,
     pub local_stats: stats::LocalStats,
+    pub dictionary: Arc<RwLock<search::interesting_val::Dict>>,
 }
 
 impl Executor {
@@ -42,6 +44,7 @@ impl Executor {
         global_branches: Arc<branches::GlobalBranches>,
         depot: Arc<depot::Depot>,
         global_stats: Arc<RwLock<stats::ChartStats>>,
+        dictionary: Arc<RwLock<search::interesting_val::Dict>>,
     ) -> Self {
         // ** Share Memory **
         let branches = branches::Branches::new(global_branches);
@@ -96,6 +99,7 @@ impl Executor {
             has_new_path: false,
             global_stats,
             local_stats: Default::default(),
+            dictionary,
         }
     }
 
@@ -174,7 +178,7 @@ impl Executor {
         &mut self,
         buf: &Vec<u8>,
         cond: &mut cond_stmt::CondStmt,
-    ) -> (StatusType, u64) {
+    ) -> (StatusType, u64, Vec<interesting_val::SCond>) {
         self.run_init();
         self.t_conds.set(cond);
         let mut status = self.run_inner(buf);
@@ -186,14 +190,14 @@ impl Executor {
         skip |= self.check_invariable(output, cond);
         self.check_consistent(output, cond);
 
-        self.do_if_has_new(buf, status, explored, cond.base.cmpid);
+        let ret: Vec<interesting_val::SCond> = self.do_if_has_new(buf, status, explored, cond.base.cmpid);
         status = self.check_timeout(status, cond);
 
         if skip {
             status = StatusType::Skip;
         }
 
-        (status, output)
+        (status, output, ret)
     }
 
     fn try_unlimited_memory(&mut self, buf: &Vec<u8>, cmpid: u32) -> bool {

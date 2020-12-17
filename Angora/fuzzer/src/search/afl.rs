@@ -14,11 +14,11 @@ pub struct AFLFuzz<'a> {
     handler: SearchHandler<'a>,
     run_ratio: usize,
     enable_dict: bool,
-    dictionary: Dict,
+    //dictionary: Dict,
 }
 
 impl<'a> AFLFuzz<'a> {
-    pub fn new(handler: SearchHandler<'a>, enable_dict: bool, dictionary: Dict) -> Self {
+    pub fn new(handler: SearchHandler<'a>, enable_dict: bool) -> Self {
         // FIXME:
         let edge_num = handler.cond.base.arg1 as usize;
         let avg_edge_num = handler.executor.local_stats.avg_edge_num.get() as usize;
@@ -30,7 +30,7 @@ impl<'a> AFLFuzz<'a> {
             5
         };
 
-        Self { handler, run_ratio, enable_dict, dictionary }
+        Self { handler, run_ratio, enable_dict }
     }
 
     pub fn run(&mut self) {

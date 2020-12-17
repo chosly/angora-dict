@@ -54,7 +54,7 @@ pub struct CommandOpt {
     pub enable_afl: bool,
     pub enable_exploitation: bool,
     pub enable_dict: bool,
-    pub dictionary: search::interesting_val::Dict,
+    //pub dictionary: search::interesting_val::Dict,
 }
 
 impl CommandOpt {
@@ -76,7 +76,7 @@ impl CommandOpt {
         let tmp_dir = out_dir.join(TMP_DIR);
         tmpfs::create_tmpfs_dir(&tmp_dir);
         
-        let mut dictionary: search::interesting_val::Dict = Default::default();
+        //let mut dictionary: search::interesting_val::Dict = Default::default();
         /*let (enable_dict, dictionary) = {
             let file = File::open(dict_mutation);
             let mut dict: search::interesting_val::Dict = Default::default();
@@ -171,7 +171,7 @@ impl CommandOpt {
             enable_afl,
             enable_exploitation,
             enable_dict,
-            dictionary,
+            //dictionary,
         }
     }
 

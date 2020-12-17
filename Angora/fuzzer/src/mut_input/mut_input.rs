@@ -150,18 +150,18 @@ impl MutInput {
         set_bytes_by_offsets(offsets, &self.value, input);
     }
 
-    pub fn randomize_all(&mut self, enable_dict: bool, dict: &search::interesting_val::Dict) {
+    pub fn randomize_all(&mut self, enable_dict: bool) {
         let mut rng = rand::thread_rng();
-        self.randomize_all_with_weight(&mut rng, 3, enable_dict, dict);
+        self.randomize_all_with_weight(&mut rng, 3, enable_dict);
     }
 
-    pub fn randomize_all_with_weight<T: Rng>(&mut self, rng: &mut T, weight: u32, enable_dict: bool, dict: &search::interesting_val::Dict) {
+    pub fn randomize_all_with_weight<T: Rng>(&mut self, rng: &mut T, weight: u32, enable_dict: bool) {
         // 1/weight true
         let coin = rng.gen_bool(1.0 / weight as f64);
         if coin {
             self.randomize_all_uniform(rng);
         } else {
-            self.randomize_all_mut_based(rng, enable_dict, dict);
+            self.randomize_all_mut_based(rng, enable_dict);
         }
     }
 
@@ -169,7 +169,7 @@ impl MutInput {
         rng.fill_bytes(&mut self.value);
     }
 
-    pub fn randomize_all_mut_based<T: Rng>(&mut self, rng: &mut T, enable_dict: bool, dict: &search::interesting_val::Dict) {
+    pub fn randomize_all_mut_based<T: Rng>(&mut self, rng: &mut T, enable_dict: bool) {
         let entry_len = self.len() as u32;
         let byte_len = self.val_len() as u32;
         assert!(byte_len > 0 && entry_len > 0);

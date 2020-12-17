@@ -14,15 +14,17 @@ pub fn fuzz_loop(
     depot: Arc<Depot>,
     global_branches: Arc<GlobalBranches>,
     global_stats: Arc<RwLock<stats::ChartStats>>,
+    dictionary: Arc<RwLock<Dict>>,
 ) {
     let search_method = cmd_opt.search_method;
     let enable_dict = cmd_opt.enable_dict;
-    let dictionary = cmd_opt.dictionary.clone();
+    //let dictionary = cmd_opt.dictionary.clone();
     let mut executor = Executor::new(
         cmd_opt,
         global_branches,
         depot.clone(),
         global_stats.clone(),
+        dictionary.clone(),
     );
 
     while running.load(Ordering::Relaxed) {
@@ -81,16 +83,16 @@ pub fn fuzz_loop(
                     } else {
                         match search_method {
                             SearchMethod::Gd => {
-                                GdSearch::new(handler).run(&mut thread_rng());
+                                GdSearch::new(handler, enable_dict).run(&mut thread_rng());
                             },
                             SearchMethod::Random => {
-                                RandomSearch::new(handler).run();
+                                RandomSearch::new(handler, enable_dict).run();
                             },
                             SearchMethod::Cbh => {
-                                CbhSearch::new(handler).run();
+                                CbhSearch::new(handler, enable_dict).run();
                             },
                             SearchMethod::Mb => {
-                                MbSearch::new(handler).run();
+                                MbSearch::new(handler, enable_dict).run();
                             },
                         }
                     }
@@ -101,13 +103,11 @@ pub fn fuzz_loop(
                         fz.run();
                         fz.handler.cond.to_unsolvable(); // to skip next time
                     } else {
-                        let dict = dictionary.clone();
-                        ExploitFuzz::new(handler, enable_dict, dict).run();
+                        ExploitFuzz::new(handler, enable_dict).run();
                     }
                 },
                 FuzzType::AFLFuzz => {
-                    let dict = dictionary.clone();
-                    AFLFuzz::new(handler, enable_dict, dict).run();
+                    AFLFuzz::new(handler, enable_dict).run();
                 },
                 FuzzType::LenFuzz => {
                     LenFuzz::new(handler).run();

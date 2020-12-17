@@ -68,16 +68,16 @@ impl<'a> SearchHandler<'a> {
         ret
     }
 
-    pub fn execute_cond(&mut self, input: &MutInput) -> u64 {
+    pub fn execute_cond(&mut self, input: &MutInput) -> (u64, Vec<interesting_val::SCond>) {
         input.write_to_input(&self.cond.offsets, &mut self.buf);
-        let (status, f_output) = self.executor.run_with_cond(&self.buf, self.cond);
+        let (status, f_output, ret) = self.executor.run_with_cond(&self.buf, self.cond);
         self.process_status(status);
         // output will be u64::MAX if unreachable, including timeout and crash
-        f_output
+        (f_output, ret)
     }
 
     pub fn execute_cond_direct(&mut self) -> u64 {
-        let (status, f_output) = self.executor.run_with_cond(&self.buf, self.cond);
+        let (status, f_output, ret) = self.executor.run_with_cond(&self.buf, self.cond);
         self.process_status(status);
         f_output
     }
