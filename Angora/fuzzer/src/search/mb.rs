@@ -52,7 +52,7 @@ impl<'a> MbSearch<'a> {
                 break;
             }
             input.assign(&orig_input_val);
-            input.randomize_all(false);
+            input.randomize_all(self.enable_dict, self.handler.executor.dictionary.clone());
             let ret =self.handler.execute_cond(&input).1;
             if self.enable_dict && ret.len() > 0 {
                 let mut d = match self.handler.executor.dictionary.write() {

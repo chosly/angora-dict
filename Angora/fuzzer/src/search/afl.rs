@@ -55,13 +55,13 @@ impl<'a> AFLFuzz<'a> {
         };
 
         
-        let max_choice = if config::ENABLE_MICRO_RANDOM_LEN {
+        /*let max_choice = if config::ENABLE_MICRO_RANDOM_LEN {
             8
         } else {
             6
         };
-        
-        /*let max_choice = if config::ENABLE_MICRO_RANDOM_LEN {
+        */
+        let max_choice = if config::ENABLE_MICRO_RANDOM_LEN {
             if self.enable_dict {
                 10
             }
@@ -70,7 +70,7 @@ impl<'a> AFLFuzz<'a> {
             }
         } else {
             6
-        };*/
+        };
 
         let choice_range = Uniform::new(0, max_choice);
 
@@ -207,43 +207,54 @@ impl<'a> AFLFuzz<'a> {
                         }
                     }
                 },
-                /*8 => {
+                8 => {
                     // insert dict
-                    if(self.dictionary.is_empty()) { return; }
+                    let d = match self.handler.executor.dictionary.read() {
+                        Ok(guard) => guard,
+                        Err(poisoned) => {
+                            warn!("Lock poisoned. Results can be incorrect! Continuing...");
+                            poisoned.into_inner()
+                        }
+                    };
+                    
+                    if d.0.is_empty() { continue; }
 
-                    let dict_idx = rng.gen_range(0, &self.dictionary.len());
-                    let list = &self.dictionary.get_list(dict_idx);
-                    let idx = rng.gen_range(0, list.len());
-                    let word = &list[idx as usize];
-                    let word_bytes = word.as_bytes();
-
-                    let add_len = word.len() as u32;
-                    let new_len = byte_len + add_len;
+                    let list = &d.get_list(rng.gen_range(0, &d.0.len()));
+                    let word = &list[rng.gen_range(0, list.len()) as usize];
+                    
+                    let extra_len = word.len() as u32;
+                    let new_len = byte_len + extra_len;
 
                     if new_len < config::MAX_INPUT_LEN as u32 {
-                        let byte_idx: u32 = rng.gen_range(0, byte_len);
+                        let insert_at: u32 = rng.gen_range(0, byte_len + 1);
                         byte_len = new_len;
-                        for i in 0..add_len {
-                            buf.insert((byte_idx + i) as usize, word_bytes[i as usize]);
+                        for i in 0..extra_len {
+                            buf.insert((insert_at + i) as usize, word[i as usize]);
                         }
                     }
-                }
+                },
                 9 => {
-                    // replace bytes with dict
-                    if(self.dictionary.is_empty()) { return; }
+                    // overwrite bytes with dict
+                    let d = match self.handler.executor.dictionary.read() {
+                        Ok(guard) => guard,
+                        Err(poisoned) => {
+                            warn!("Lock poisoned. Results can be incorrect! Continuing...");
+                            poisoned.into_inner()
+                        }
+                    };
 
-                    let dict_idx = rng.gen_range(0, &self.dictionary.len());
-                    let list = &self.dictionary.get_list(dict_idx);
-                    let idx = rng.gen_range(0, list.len());
-                    let word = &list[idx as usize];
-                    let word_bytes = word.as_bytes();
-                    let size = word.len() as usize;
+                    if d.0.is_empty() { continue; }
 
-                    if byte_len > size as u32 {
-                        let byte_idx: u32 = rng.gen_range(0, byte_len - size as u32);
-                        mut_input::set_word_in_buf(buf, byte_idx as usize, size, word_bytes);
+                    let list = &d.get_list(rng.gen_range(0, &d.0.len()));
+                    let word = &list[rng.gen_range(0, list.len()) as usize];
+
+                    let extra_len = word.len() as u32;
+
+                    if byte_len > extra_len {
+                        let insert_at: u32 = rng.gen_range(0, byte_len - extra_len as u32 + 1);
+                        mut_input::set_word_in_buf(buf, insert_at as usize, extra_len as usize, word);
                     }
-                }*/
+                },
                 _ => {},
             }
         }

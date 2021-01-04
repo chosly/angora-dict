@@ -35,7 +35,7 @@ impl<'a> CbhSearch<'a> {
                 break;
             }
             input.assign(&input_min);
-            input.randomize_all(false);
+            input.randomize_all(self.enable_dict, self.handler.executor.dictionary.clone());
             let (f0, ret) = self.handler.execute_cond(&input);
 
             if self.enable_dict && ret.len() > 0 {

@@ -1,5 +1,5 @@
 use super::ChartStats;
-use crate::{branches::GlobalBranches, depot::Depot};
+use crate::{branches::GlobalBranches, depot::Depot, executor};
 use angora_common::defs;
 use std::{
     fs,
@@ -12,6 +12,8 @@ pub fn show_stats(
     depot: &Arc<Depot>,
     gb: &Arc<GlobalBranches>,
     stats: &Arc<RwLock<ChartStats>>,
+    dlog_f: &mut fs::File,
+    executor: &mut executor::Executor,
 ) -> usize {
     let covered_branches = &gb.get_covered_branches();
     stats
@@ -37,6 +39,15 @@ pub fn show_stats(
         )
         .expect("Unable to write!");
     }
-
+    {
+        let d = match executor.dictionary.read() {
+            Ok(guard) => guard,
+            Err(poisoned) => {
+                warn!("Lock poisoned. Results can be incorrect! Continuing...");
+                poisoned.into_inner()
+            }
+        };
+        writeln!(dlog_f, "{}", d.get_len()).expect("Could not write minilog.");
+    }
     *covered_branches
 }

@@ -32,7 +32,6 @@ pub fn fuzz_main(
     enable_afl: bool,
     enable_exploitation: bool,
     enable_dict: bool,
-    //dict_mutation: &str,
 ) {
     pretty_env_logger::init();
 
@@ -48,7 +47,6 @@ pub fn fuzz_main(
         enable_afl,
         enable_exploitation,
         enable_dict,
-        //dict_mutation,
     );
     info!("{:?}", command_option);
     check_dep::check_dep(in_dir, out_dir, &command_option);
@@ -100,8 +98,16 @@ pub fn fuzz_main(
             panic!();
         }
     };
+    let dlog_file = match fs::File::create(angora_out_dir.join(defs::ANGORA_DLOG_FILE)) {
+        Ok(a) => a,
+        Err(e) => {
+            error!("FATAL: Could not create log file: {:?}", e);
+            panic!();
+        }
+    };
     main_thread_sync_and_log(
         log_file,
+        dlog_file,
         out_dir,
         sync_afl,
         running.clone(),
@@ -223,6 +229,7 @@ fn init_cpus_and_run_fuzzing_threads(
 
 fn main_thread_sync_and_log(
     mut log_file: fs::File,
+    mut dlog_file: fs::File,
     out_dir: &str,
     sync_afl: bool,
     running: Arc<AtomicBool>,
@@ -239,7 +246,8 @@ fn main_thread_sync_and_log(
         depot::sync_afl(executor, running.clone(), sync_dir, &mut synced_ids);
     }
     let mut sync_counter = 1;
-    show_stats(&mut log_file, depot, global_branches, stats);
+    show_stats(&mut log_file, depot, global_branches, stats,
+               &mut dlog_file, executor);
     while running.load(Ordering::SeqCst) {
         thread::sleep(time::Duration::from_secs(5));
         sync_counter -= 1;
@@ -248,7 +256,8 @@ fn main_thread_sync_and_log(
             sync_counter = 12;
         }
 
-        show_stats(&mut log_file, depot, global_branches, stats);
+        show_stats(&mut log_file, depot, global_branches, stats,
+                   &mut dlog_file, executor);
         if Arc::strong_count(&child_count) == 1 {
             let s = stats.read().unwrap();
             let cur_explore_num = s.get_explore_num();

@@ -120,7 +120,6 @@ pub fn fuzz_loop(
                 },
             }
         }
-
         depot.update_entry(cond);
     }
 }

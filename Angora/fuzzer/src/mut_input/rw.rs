@@ -58,10 +58,10 @@ pub fn set_val_in_buf(buf: &mut Vec<u8>, off: usize, size: usize, val: u64) {
     };
 }
 
-pub fn set_word_in_buf(buf: &mut Vec<u8>, off: usize, size: usize, word: &[u8]) {
-    for i in off..off + size {
+pub fn set_word_in_buf(buf: &mut Vec<u8>, insert_at: usize, extra_len: usize, word: &[u8]) {
+    for i in insert_at..insert_at + extra_len {
         let v = &mut buf[i];
-        *v = word[i - off];
+        *v = word[i - insert_at];
     }
 }
 

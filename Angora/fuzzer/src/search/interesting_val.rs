@@ -121,14 +121,15 @@ impl Word {
 }
 
 #[derive(Default, Clone, Debug)]
-pub struct Dict (pub IndexMap<u32, Vec<Vec<u8>>>);
+pub struct Dict (pub IndexMap<usize, Vec<Vec<u8>>>);
 
 impl Dict {
     pub fn filter(&mut self, conds: Vec<SCond>, buf: Vec<u8>) {
-        //info!("before: {:?}", self.0);
         for cond in conds {
             let mut words: Vec<Vec<u8>> = Vec::new();
             let mut i = 0;
+            let mut min: usize = std::usize::MAX;
+            let mut max: usize = std::usize::MIN;
             loop {
                 if i == cond.offsets.len() { break; }
 
@@ -144,68 +145,28 @@ impl Dict {
                 i += 1;
             }
 
-            if let Some(x) = self.0.get_mut(&cond.cmpid) {
-                for word in words {
+            for offset in cond.offsets {
+                min = if min > offset.begin as usize { offset.begin as usize } else { min };
+                max = if max < offset.end as usize { offset.end as usize } else { max };
+            }
+            if min < max { words.push(buf[min..max].to_vec()); }
+
+            for word in words {
+                let len = word.len();
+                if let Some(x) = self.0.get_mut(&len) {
                     if !x.contains(&word) {
-                        info!("{}", String::from_utf8_lossy(&word));
                         x.push(word);
                     }
                 }
-            }
-            else {
-                self.0.insert(cond.cmpid, words);
-            }
-        }
-        //info!("after: {:?}", self.0);
-    }
-}
-/*pub struct Dict (pub IndexMap<usize, Vec<Word>>);
-
-impl Dict {
-    pub fn parse_dict(file: fs::File) -> Dict {
-        let mut dict: Dict = Default::default();
-        let reader = BufReader::new(file);
-
-        for r in reader.lines() {
-            let line = r.unwrap();
-            if line == "\n" {
-                continue;
-            }
-
-            let mut first_quote: i32 = -1;
-            let mut second_quote: i32 = -1;
-            for (i, ch) in line.chars().enumerate() {
-                if ch == '\"' {
-                    if first_quote == -1 {
-                        first_quote = i as i32;
-                    }
-                    else {
-                        second_quote = i as i32;
-                    }
-                }
-            }
-            if first_quote > -1 && second_quote > -1 {
-                let data = line[first_quote as usize + 1..second_quote as usize].to_string();
-                let word = Word::new(data);
-                let len = word.0.len();
-                if let Some(x) = dict.0.get_mut(&len) {
-                    x.push(word);
-                }
                 else {
-                    dict.0.insert(len, vec![word]);
+                    self.0.insert(len, vec![word]);
+                    self.0.sort_keys();
                 }
             }
         }
-
-        dict.0.sort_keys();
-        dict
     }
 
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn get_list(&self, idx: usize) -> Vec<Word> {
+    pub fn get_list(&self, idx: usize) -> Vec<Vec<u8>> {
         match &self.0.get_index(idx) {
             Some(x) => { x.1.to_vec() }
             _ => { warn!("Can't find the dictionary"); vec![] }
@@ -215,4 +176,34 @@ impl Dict {
     pub fn is_empty(&self) -> bool {
         return self.0.is_empty()
     }
-}*/
+
+    pub fn get_len(&self) -> String {
+        let mut arr = [0; 8];
+        for (l, k) in self.0.iter() {
+            // [1], [2], [3], [4, 7], [8, 15], [16, 31], [32, 127], [128, infinity]
+            if *l == 1 {
+                arr[0] += k.len();
+            } else if *l == 2 {
+                arr[1] += k.len();
+            } else if *l == 4 {
+                arr[2] += k.len();
+            } else if *l >= 4 && *l <= 7 {
+                arr[3] += k.len();
+            } else if *l >= 8 && *l <= 15 {
+                arr[4] += k.len();
+            } else if *l >= 16 && *l <= 31 {
+                arr[5] += k.len();
+            } else if *l >= 32 && *l <= 127 {
+                arr[6] += k.len();
+            } else if *l >= 128 {
+                arr[7] += k.len();
+            }
+        }
+        let mut result = String::new();
+        for i in arr.iter() {
+            result += &i.to_string();
+            result += ",";
+        }
+        result
+    }
+}

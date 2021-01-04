@@ -54,7 +54,6 @@ pub struct CommandOpt {
     pub enable_afl: bool,
     pub enable_exploitation: bool,
     pub enable_dict: bool,
-    //pub dictionary: search::interesting_val::Dict,
 }
 
 impl CommandOpt {
@@ -69,30 +68,12 @@ impl CommandOpt {
         enable_afl: bool,
         enable_exploitation: bool,
         enable_dict: bool,
-        //dict_mutation: &str,
     ) -> Self {
         let mode = InstrumentationMode::from(mode);
         
         let tmp_dir = out_dir.join(TMP_DIR);
         tmpfs::create_tmpfs_dir(&tmp_dir);
         
-        //let mut dictionary: search::interesting_val::Dict = Default::default();
-        /*let (enable_dict, dictionary) = {
-            let file = File::open(dict_mutation);
-            let mut dict: search::interesting_val::Dict = Default::default();
-            match file {
-                Ok(_) => {
-                    dict.0 = search::interesting_val::Dict::parse_dict(file.unwrap()).0;
-                    //dict.0.append(&mut search::interesting_val::Dict::parse_dict(file.unwrap()).0);
-                    (true, dict)
-                },
-                Err(_) => {
-                    warn!("Disable dictionary!");
-                    (false, dict)
-                }
-            }
-        };*/
-
         let out_file = tmp_dir.join(INPUT_FILE).to_str().unwrap().to_owned();
         let forksrv_socket_path = tmp_dir
             .join(FORKSRV_SOCKET_FILE)
@@ -171,7 +152,6 @@ impl CommandOpt {
             enable_afl,
             enable_exploitation,
             enable_dict,
-            //dictionary,
         }
     }
 

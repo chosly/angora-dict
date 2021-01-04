@@ -33,13 +33,13 @@ impl<'a> GdSearch<'a> {
         let mut fmin = std::u64::MAX;
         let mut input = self.handler.get_f_input();
         let mut input_min = input.get_value();
-        
+
         loop {
             if self.handler.is_stopped_or_skip() {
                 break;
             }
             input.assign(&input_min);
-            input.randomize_all_with_weight(rng, 3, false);
+            input.randomize_all_with_weight(rng, 3, self.enable_dict, self.handler.executor.dictionary.clone());
             let f0 = self.execute(&input).0;
             if f0 < fmin {
                 fmin = f0;
